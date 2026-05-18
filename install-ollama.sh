@@ -46,6 +46,18 @@ else
   warn "未检测到 systemd 服务，请手动以 OLLAMA_HOST=0.0.0.0:11434 启动 ollama serve"
 fi
 
+# UFW 放行：Docker 网桥 (172.16.0.0/12) 访问宿主机 11434
+# 仅当 ufw 已安装且处于 active 状态时添加；公网仍被默认策略 DROP 拦截。
+if command -v ufw >/dev/null 2>&1 && sudo ufw status 2>/dev/null | grep -q '^Status: active'; then
+  if sudo ufw status | grep -q '172.16.0.0/12.*11434'; then
+    ok "UFW 已放行 Docker → Ollama"
+  else
+    log "UFW 放行 Docker 网桥访问 11434..."
+    sudo ufw allow from 172.16.0.0/12 to any port 11434 proto tcp comment 'Docker -> Ollama' >/dev/null
+    ok "UFW 规则已添加"
+  fi
+fi
+
 # 等待 Ollama 就绪
 log "等待 Ollama API 就绪..."
 for i in {1..20}; do

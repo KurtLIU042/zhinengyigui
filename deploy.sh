@@ -75,15 +75,13 @@ fi
 
 if [[ ! -f "${INSTALL_DIR}/.env" ]]; then
   cp "${SCRIPT_DIR}/configs/.env.example" "${INSTALL_DIR}/.env"
-  # 生成强密钥
-  SECRET_KEY=$(openssl rand -hex 32)
+  # 仅随机化 NEXTAUTH_SECRET 与 POSTGRES_PASSWORD。
+  # SECRET_KEY 必须保持 change-me-in-production，否则免密登录失效（见 .env.example 注释）。
   NEXTAUTH_SECRET=$(openssl rand -hex 32)
   POSTGRES_PASSWORD=$(openssl rand -hex 16)
-  # 用 | 分隔避免 / 冲突
-  sed -i "s|__SECRET_KEY__|${SECRET_KEY}|g" "${INSTALL_DIR}/.env"
   sed -i "s|__NEXTAUTH_SECRET__|${NEXTAUTH_SECRET}|g" "${INSTALL_DIR}/.env"
   sed -i "s|__POSTGRES_PASSWORD__|${POSTGRES_PASSWORD}|g" "${INSTALL_DIR}/.env"
-  ok "已生成强密钥并写入 .env"
+  ok "已生成强密钥并写入 .env（SECRET_KEY 保留默认以启用免密登录）"
 else
   warn ".env 已存在，跳过密钥生成（如需重置请删除后重跑）"
 fi
