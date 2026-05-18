@@ -57,6 +57,22 @@ ok "源码已就绪：${INSTALL_DIR}"
 log "应用本地化配置（docker-compose.yml / .env）..."
 cp "${SCRIPT_DIR}/configs/docker-compose.yml" "${INSTALL_DIR}/docker-compose.override.yml"
 
+# ---------- 应用中文界面补丁 ----------
+I18N_PATCH="${SCRIPT_DIR}/configs/i18n-zh-CN.patch"
+I18N_MARKER="${INSTALL_DIR}/.i18n-zh-CN.applied"
+if [[ -f "${I18N_PATCH}" ]]; then
+  if [[ -f "${I18N_MARKER}" ]]; then
+    ok "中文界面补丁已应用过，跳过"
+  elif git -C "${INSTALL_DIR}" apply --check "${I18N_PATCH}" >/dev/null 2>&1; then
+    log "应用中文界面补丁..."
+    git -C "${INSTALL_DIR}" apply "${I18N_PATCH}"
+    touch "${I18N_MARKER}"
+    ok "前端已切换为中文界面"
+  else
+    warn "中文补丁与当前源码不兼容（可能上游已变更），跳过 — 前端将保持英文"
+  fi
+fi
+
 if [[ ! -f "${INSTALL_DIR}/.env" ]]; then
   cp "${SCRIPT_DIR}/configs/.env.example" "${INSTALL_DIR}/.env"
   # 生成强密钥
