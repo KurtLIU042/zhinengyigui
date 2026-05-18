@@ -1,0 +1,46 @@
+# 个人 VPS 部署的 docker-compose override
+# 作为 docker-compose.override.yml 覆盖上游配置
+# 与上游 docker-compose.yml 合并：docker compose up -d
+#
+# 注意：postgres/redis 端口不在此处覆盖（compose 的 ports 合并会附加而非替换）。
+# 通过 .env 设置 POSTGRES_PORT=127.0.0.1:5432 / REDIS_PORT=127.0.0.1:6379
+# 让它们只监听 loopback，避免暴露到公网。
+services:
+  postgres:
+    restart: unless-stopped
+
+  redis:
+    restart: unless-stopped
+
+  backend:
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # 个人使用：开启 DEBUG 启用免密登录
+      DEBUG: "true"
+      # 允许从任意源访问（个人 VPS 在防火墙后）
+      CORS_ORIGINS: '["http://localhost:3000","http://frontend:3000","*"]'
+      AI_BASE_URL: ${AI_BASE_URL:-http://host.docker.internal:11434/v1}
+      AI_VISION_MODEL: ${AI_VISION_MODEL:-llava:7b}
+      AI_TEXT_MODEL: ${AI_TEXT_MODEL:-gemma3:latest}
+      AI_TIMEOUT: ${AI_TIMEOUT:-300}
+      AI_MAX_RETRIES: ${AI_MAX_RETRIES:-3}
+
+  worker:
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      AI_BASE_URL: ${AI_BASE_URL:-http://host.docker.internal:11434/v1}
+      AI_VISION_MODEL: ${AI_VISION_MODEL:-llava:7b}
+      AI_TEXT_MODEL: ${AI_TEXT_MODEL:-gemma3:latest}
+      AI_TIMEOUT: ${AI_TIMEOUT:-300}
+      AI_MAX_RETRIES: ${AI_MAX_RETRIES:-3}
+
+  frontend:
+    restart: unless-stopped
+    environment:
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXT_PUBLIC_API_URL: ""
+      DEV_MODE: "true"
